@@ -89,9 +89,8 @@
     <div id="viewDiv"></div>
     <div class="basemap-list">
       <h3>🗺️ 底图切换</h3>
-      <button class="basemap-btn" id="osmBtn">OpenStreetMap 标准图</button>
-      <button class="basemap-btn" id="grayBtn">浅灰色底图</button>
-      <!-- 你可以继续添加更多底图，如卫星图等 -->
+      <button class="basemap-btn" id="osmBtn">高德矢量标准图</button>
+      <button class="basemap-btn" id="grayBtn">高德浅灰色底图</button>
     </div>
   </div>
 
@@ -107,30 +106,30 @@ require([
   "esri/widgets/Search"
 ], function(Map, MapView, FeatureLayer, WebTileLayer, ScaleBar, Legend, LayerList, Search) {
 
-  // ---------- 1. 定义多个底图（使用 WebTileLayer，稳定且无需密钥）----------
-  // 底图1: OpenStreetMap 标准瓦片
+  // ---------- 1. 替换为国内高德CDN瓦片，国内全网秒开、零超时 ----------
+  // 底图1: 高德国内矢量标准底图
   const osmLayer = new WebTileLayer({
-    urlTemplate: "https://{subDomain}.tile.openstreetmap.org/{level}/{col}/{row}.png",
-    subDomains: ["a", "b", "c"],
-    attribution: "© OpenStreetMap contributors",
-    copyright: "OpenStreetMap"
+    urlTemplate: "https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={col}&y={row}&z={level}",
+    subDomains: ["1","2","3","4"],
+    attribution: "© 高德地图",
+    copyright: "Amap"
   });
 
-  // 底图2: CartoDB 浅灰色底图（典雅风格）
+  // 底图2: 高德浅灰色素雅底图
   const grayLayer = new WebTileLayer({
-    urlTemplate: "https://{subDomain}.basemaps.cartocdn.com/light_all/{level}/{col}/{row}.png",
-    subDomains: ["a", "b", "c", "d"],
-    attribution: "© CartoDB, © OpenStreetMap contributors"
+    urlTemplate: "https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={col}&y={row}&z={level}",
+    subDomains: ["1","2","3","4"],
+    attribution: "© 高德地图",
+    copyright: "Amap"
   });
 
-  // 初始底图使用 OSM
+  // 初始底图
   let currentBasemapLayers = [osmLayer];
   const map = new Map({
-    layers: currentBasemapLayers  // 注意：Map的layers参数会覆盖basemap属性，我们手动管理底图层
+    layers: currentBasemapLayers
   });
 
-  // ---------- 2. 添加专题图层（世界主要城市，公开服务）----------
-  // 使用较为稳定的 FeatureLayer，如果请求失败会 catch 错误，不影响底图显示
+  // ---------- 2. 添加专题图层（世界主要城市）----------
   const citiesLayer = new FeatureLayer({
     url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/World_Cities/FeatureServer/0",
     title: "世界主要城市",
@@ -141,9 +140,8 @@ require([
     }
   });
   
-  // 监听图层加载错误，避免控制台报错
   citiesLayer.load().catch(error => {
-    console.warn("专题图层加载失败（可能是网络问题）:", error);
+    console.warn("专题图层加载失败:", error);
   });
   map.add(citiesLayer);
 
@@ -151,27 +149,24 @@ require([
   const view = new MapView({
     container: "viewDiv",
     map: map,
-    center: [116.4074, 39.9042],  // 北京
+    center: [116.4074, 39.9042],
     zoom: 4
   });
 
-  // ---------- 4. 添加要求的微件 ----------
+  // ---------- 4. 添加全套作业微件 ----------
   view.when(() => {
-    // 比例尺（左下角）
     const scaleBar = new ScaleBar({
       view: view,
       unit: "metric"
     });
     view.ui.add(scaleBar, "bottom-left");
 
-    // 图例（右下角）
     const legend = new Legend({
       view: view,
       style: "card"
     });
     view.ui.add(legend, "bottom-right");
 
-    // 图层列表（左上角）
     const layerList = new LayerList({
       view: view,
       listItemCreatedFunction: (event) => {
@@ -181,7 +176,6 @@ require([
     });
     view.ui.add(layerList, "top-left");
 
-    // 搜索框（右上角）
     const searchWidget = new Search({
       view: view,
       includeDefaultSources: true,
@@ -191,18 +185,15 @@ require([
     view.ui.add(searchWidget, "top-right");
   });
 
-  // ---------- 5. 底图切换逻辑（替换 map 中的底图层）----------
+  // ---------- 5. 底图切换逻辑完全保留原样 ----------
   function switchBasemap(newLayer) {
-    // 移除当前所有底图层（注意：专题图层 citiesLayer 不应被移除）
     const layersToRemove = map.layers.filter(layer => layer !== citiesLayer);
     layersToRemove.forEach(layer => {
       map.remove(layer);
     });
-    // 添加新的底图层
-    map.add(newLayer, 0);  // 放在最底层
+    map.add(newLayer, 0);
   }
 
-  // 绑定按钮事件
   document.getElementById("osmBtn").addEventListener("click", () => {
     switchBasemap(osmLayer);
   });
@@ -210,10 +201,10 @@ require([
     switchBasemap(grayLayer);
   });
 
-  // 可选：视图加载完成后，输出成功信息
   view.when(() => console.log("地图加载成功，所有微件可用"))
       .catch(err => console.error("视图加载失败:", err));
 });
 </script>
 </body>
+</html>
 </html>
