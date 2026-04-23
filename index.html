@@ -72,7 +72,7 @@
     <div id="viewDiv"></div>
     <div class="basemap-list">
       <h3>底图切换</h3>
-      <button class="basemap-btn" onclick="setBasemap('streets')">矢量街道</button>
+      <button class="basemap-btn" onclick="setBasemap('streets-vector')">矢量街道</button>
       <button class="basemap-btn" onclick="setBasemap('satellite')">卫星影像</button>
       <button class="basemap-btn" onclick="setBasemap('terrain')">地形底图</button>
     </div>
@@ -90,12 +90,12 @@ require([
   "esri/widgets/LayerList"
 ], function(Map, MapView, FeatureLayer, ScaleBar, Legend, LayerList) {
 
-  // ArcGIS 4.28 官方标准底图，国内可正常加载
+  // ArcGIS 4.28 官方原生标准底图，无需登录、国内可正常加载
   map = new Map({
-    basemap: "streets"
+    basemap: "streets-vector"
   });
 
-  // 全球公开国界要素图层
+  // 全球公开国界要素图层，匿名无权限限制
   var chinaLayer = new FeatureLayer({
     url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Countries/FeatureServer/0"
   });
@@ -108,12 +108,12 @@ require([
     zoom: 4
   });
 
-  // 保留作业要求全部控件，移除会报错的海外搜索控件
+  // 只保留作业必选控件，彻底删除需要登录的搜索Search控件
   view.ui.add(new ScaleBar({ view: view, unit: "metric" }), "bottom-left");
   view.ui.add(new Legend({ view: view }), "bottom-right");
   view.ui.add(new LayerList({ view: view }), "top-left");
 
-  // 标准底图切换，无ID报错
+  // 严格匹配4.28官方底图ID，零报错切换
   window.setBasemap = function (type) {
     map.basemap = type;
   };
