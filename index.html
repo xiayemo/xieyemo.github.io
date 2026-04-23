@@ -10,7 +10,7 @@
     *{margin:0;padding:0;box-sizing:border-box;}
     html,body{height:100%;width:100%;overflow:hidden;}
 
-    /* 顶部页眉 */
+    /* 页眉 */
     .header{
       width: 100%;
       height: 60px;
@@ -37,7 +37,7 @@
       height: 100%;
     }
 
-    /* 右侧底图切换栏 */
+    /* 右侧底图库区域（只显示当前底图信息） */
     .basemap-list{
       width: 260px;
       height: 100%;
@@ -54,30 +54,14 @@
       padding-bottom: 8px;
       font-size: 18px;
     }
-    .basemap-btn{
-      width: 100%;
-      padding: 10px 0;
-      margin: 8px 0;
-      border: none;
-      border-radius: 6px;
+    .basemap-info{
       background: white;
-      cursor: pointer;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
       font-size: 15px;
-      transition: all 0.2s ease;
+      color: #333;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    .basemap-btn:hover{
-      background: #3676d8;
-      color: white;
-      transform: translateY(-1px);
-    }
-    .basemap-btn:active{
-      transform: translateY(1px);
-    }
-    /* 微件位置微调，避免右侧面板遮挡 */
-    .esri-search {
-      margin-left: 10px;
-      margin-top: 10px;
     }
   </style>
 </head>
@@ -88,9 +72,9 @@
   <div class="main-container">
     <div id="viewDiv"></div>
     <div class="basemap-list">
-      <h3>🗺️ 底图切换</h3>
-      <button class="basemap-btn" id="osmBtn">高德矢量标准图</button>
-      <button class="basemap-btn" id="grayBtn">高德浅灰色底图</button>
+      <h3>🗺️ 底图库</h3>
+      <div class="basemap-info">当前底图：浅灰色矢量底图 (CartoDB)</div>
+      <!-- 根据要求，只保留一个稳定底图，不再提供切换按钮 -->
     </div>
   </div>
 
@@ -106,30 +90,19 @@ require([
   "esri/widgets/Search"
 ], function(Map, MapView, FeatureLayer, WebTileLayer, ScaleBar, Legend, LayerList, Search) {
 
-  // ---------- 1. 替换为国内高德CDN瓦片，国内全网秒开、零超时 ----------
-  // 底图1: 高德国内矢量标准底图
-  const osmLayer = new WebTileLayer({
-    urlTemplate: "https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={col}&y={row}&z={level}",
-    subDomains: ["1","2","3","4"],
-    attribution: "© 高德地图",
-    copyright: "Amap"
+  // ---------- 1. 创建唯一底图：CartoDB 浅灰色矢量底图（全球稳定，无需密钥）----------
+  const grayBasemapLayer = new WebTileLayer({
+    urlTemplate: "https://{subDomain}.basemaps.cartocdn.com/light_all/{level}/{col}/{row}.png",
+    subDomains: ["a", "b", "c", "d"],
+    attribution: "© CartoDB, © OpenStreetMap contributors"
   });
 
-  // 底图2: 高德浅灰色素雅底图
-  const grayLayer = new WebTileLayer({
-    urlTemplate: "https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={col}&y={row}&z={level}",
-    subDomains: ["1","2","3","4"],
-    attribution: "© 高德地图",
-    copyright: "Amap"
-  });
-
-  // 初始底图
-  let currentBasemapLayers = [osmLayer];
   const map = new Map({
-    layers: currentBasemapLayers
+    layers: [grayBasemapLayer]   // 只包含底图，专题图层后续添加
   });
 
-  // ---------- 2. 添加专题图层（世界主要城市）----------
+  // ---------- 2. 添加多个可用的专题图层（公开、稳定）----------
+  // 图层1：世界主要城市（带人口信息）
   const citiesLayer = new FeatureLayer({
     url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/World_Cities/FeatureServer/0",
     title: "世界主要城市",
@@ -139,34 +112,63 @@ require([
       content: "国家: {CNTRY_NAME}<br>人口: {POPULATION}"
     }
   });
-  
-  citiesLayer.load().catch(error => {
-    console.warn("专题图层加载失败:", error);
+
+  // 图层2：世界国家边界（用于参考）
+  const countriesLayer = new FeatureLayer({
+    url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Countries/FeatureServer/0",
+    title: "世界国家边界",
+    visible: true,
+    opacity: 0.6,
+    popupTemplate: {
+      title: "{COUNTRY}",
+      content: "地区: {REGION}<br>人口: {POP_EST}"
+    }
   });
-  map.add(citiesLayer);
+
+  // 图层3：全球地震点（过去30天，动态数据）
+  const earthquakesLayer = new FeatureLayer({
+    url: "https://services.arcgis.com/ue9rwULGC1iJmxpE/arcgis/rest/services/Earthquakes/FeatureServer/0",
+    title: "全球地震 (近30天)",
+    visible: false,   // 默认关闭，可在图层列表中手动开启
+    popupTemplate: {
+      title: "地震 {magnitude} 级",
+      content: "地点: {place}<br>时间: {time}"
+    }
+  });
+
+  // 添加图层到地图（注意顺序：底图在前，专题图层在上）
+  map.addMany([citiesLayer, countriesLayer, earthquakesLayer]);
+
+  // 捕获加载失败信息，避免控制台报错影响体验
+  [citiesLayer, countriesLayer, earthquakesLayer].forEach(layer => {
+    layer.load().catch(err => console.warn(`图层 ${layer.title} 加载失败:`, err));
+  });
 
   // ---------- 3. 创建地图视图 ----------
   const view = new MapView({
     container: "viewDiv",
     map: map,
-    center: [116.4074, 39.9042],
+    center: [116.4074, 39.9042],  // 北京
     zoom: 4
   });
 
-  // ---------- 4. 添加全套作业微件 ----------
+  // ---------- 4. 添加实验要求的微件 ----------
   view.when(() => {
+    // 比例尺（左下角）
     const scaleBar = new ScaleBar({
       view: view,
       unit: "metric"
     });
     view.ui.add(scaleBar, "bottom-left");
 
+    // 图例（右下角）
     const legend = new Legend({
       view: view,
       style: "card"
     });
     view.ui.add(legend, "bottom-right");
 
+    // 图层列表（左上角）
     const layerList = new LayerList({
       view: view,
       listItemCreatedFunction: (event) => {
@@ -176,6 +178,7 @@ require([
     });
     view.ui.add(layerList, "top-left");
 
+    // 搜索框（右上角）
     const searchWidget = new Search({
       view: view,
       includeDefaultSources: true,
@@ -183,28 +186,24 @@ require([
       locationEnabled: true
     });
     view.ui.add(searchWidget, "top-right");
-  });
 
-  // ---------- 5. 底图切换逻辑完全保留原样 ----------
-  function switchBasemap(newLayer) {
-    const layersToRemove = map.layers.filter(layer => layer !== citiesLayer);
-    layersToRemove.forEach(layer => {
-      map.remove(layer);
-    });
-    map.add(newLayer, 0);
-  }
-
-  document.getElementById("osmBtn").addEventListener("click", () => {
-    switchBasemap(osmLayer);
+    console.log("所有微件加载完成，地图已就绪");
+  }).catch(err => {
+    console.error("地图视图初始化失败:", err);
+    // 在页面上显示友好错误提示
+    const errorMsg = document.createElement("div");
+    errorMsg.style.position = "absolute";
+    errorMsg.style.bottom = "20px";
+    errorMsg.style.left = "20px";
+    errorMsg.style.background = "rgba(0,0,0,0.7)";
+    errorMsg.style.color = "white";
+    errorMsg.style.padding = "8px 15px";
+    errorMsg.style.borderRadius = "5px";
+    errorMsg.style.fontSize = "14px";
+    errorMsg.innerText = "地图加载失败，请检查网络后刷新重试";
+    document.getElementById("viewDiv").appendChild(errorMsg);
   });
-  document.getElementById("grayBtn").addEventListener("click", () => {
-    switchBasemap(grayLayer);
-  });
-
-  view.when(() => console.log("地图加载成功，所有微件可用"))
-      .catch(err => console.error("视图加载失败:", err));
 });
 </script>
 </body>
-</html>
 </html>
