@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>实验六 基于ArcGIS API for JavaScript构建WebGIS应用</title>
+  <!-- 严格匹配GeoScene国产官方API，和你的图层同源，零跨域报错 -->
+  <link rel="stylesheet" href="https://js.geoscene.cn/4.28/esri/css/main.css">
+  <script src="https://js.geoscene.cn/4.28/"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;width:100%;overflow:hidden;}
+
+    /* 顶部页眉 */
+    .header{
+      width: 100%;
+      height: 60px;
+      background: #162944;
+      color: #fff;
+      line-height: 60px;
+      padding-left: 30px;
+      font-size: 21px;
+      font-weight: bold;
+    }
+
+    /* 主体布局 */
+    .main-container{
+      width: 100%;
+      height: calc(100vh - 60px);
+      display: flex;
+    }
+
+    /* 地图区域 */
+    #viewDiv{
+      flex: 1;
+      height: 100%;
+    }
+
+    /* 右侧底图切换栏 */
+    .basemap-list{
+      width: 240px;
+      height: 100%;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+    .basemap-list h3{
+      margin-bottom: 15px;
+      color: #162944;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 8px;
+    }
+    .basemap-btn{
+      width: 100%;
+      padding: 12px 0;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      background: white;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .basemap-btn:hover{
+      background: #3676d8;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">基于ArcGIS API for JavaScript WebGIS实验</div>
+
+  <div class="main-container">
+    <div id="viewDiv"></div>
+    <div class="basemap-list">
+      <h3>底图切换</h3>
+      <button class="basemap-btn" onclick="setBasemap('geoscene-vector')">矢量底图</button>
+      <button class="basemap-btn" onclick="setBasemap('geoscene-satellite')">卫星影像</button>
+      <button class="basemap-btn" onclick="setBasemap('geoscene-terrain')">地形底图</button>
+    </div>
+  </div>
+
+<script>
+var map, view;
+
+require([
+  "esri/Map",
+  "esri/views/MapView",
+  "esri/layers/FeatureLayer",
+  "esri/widgets/ScaleBar",
+  "esri/widgets/Legend",
+  "esri/widgets/Search",
+  "esri/widgets/LayerList"
+], function(Map, MapView, FeatureLayer, ScaleBar, Legend, Search, LayerList) {
+
+  // GeoScene原生官方底图，API完美适配
+  map = new Map({
+    basemap: "geoscene-vector"
+  });
+
+  // 你的中国省级行政区GeoScene图层 完整可用地址
+  var chinaLayer = new FeatureLayer({
+    url: "https://www.geosceneonline.cn/server/rest/services/Hosted/中国_省级行政区/FeatureServer/0"
+  });
+  map.add(chinaLayer);
+
+  view = new MapView({
+    container: "viewDiv",
+    map: map,
+    center: [116, 34],
+    zoom: 4
+  });
+
+  // 全套作业控件
+  view.ui.add(new ScaleBar({ view: view, unit: "metric" }), "bottom-left");
+  view.ui.add(new Legend({ view: view }), "bottom-right");
+  view.ui.add(new Search({ view: view }), "top-right");
+  view.ui.add(new LayerList({ view: view }), "top-left");
+
+  window.setBasemap = function (type) {
+    map.basemap = type;
+  };
+
+});
+</script>
+</body>
+</html>
