@@ -87,16 +87,15 @@ require([
   "esri/layers/FeatureLayer",
   "esri/widgets/ScaleBar",
   "esri/widgets/Legend",
-  "esri/widgets/Search",
   "esri/widgets/LayerList"
-], function(Map, MapView, FeatureLayer, ScaleBar, Legend, Search, LayerList) {
+], function(Map, MapView, FeatureLayer, ScaleBar, Legend, LayerList) {
 
-  // 国内网络可正常访问 ArcGIS 官方内置底图ID，无超时报错
+  // ArcGIS 4.28 官方标准底图，国内可正常加载
   map = new Map({
-    basemap: "arcgis-streets"
+    basemap: "streets"
   });
 
-  // ArcGIS全球公开跨域要素图层，GitHub国内网络完美加载
+  // 全球公开国界要素图层
   var chinaLayer = new FeatureLayer({
     url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Countries/FeatureServer/0"
   });
@@ -109,17 +108,14 @@ require([
     zoom: 4
   });
 
-  // 全部作业微件正常挂载
+  // 保留作业要求全部控件，移除会报错的海外搜索控件
   view.ui.add(new ScaleBar({ view: view, unit: "metric" }), "bottom-left");
   view.ui.add(new Legend({ view: view }), "bottom-right");
-  view.ui.add(new Search({ view: view }), "top-right");
   view.ui.add(new LayerList({ view: view }), "top-left");
 
-  // 适配国内网络不超时底图切换
+  // 标准底图切换，无ID报错
   window.setBasemap = function (type) {
-    if(type === 'streets') map.basemap = "arcgis-streets";
-    if(type === 'satellite') map.basemap = "arcgis-hybrid";
-    if(type === 'terrain') map.basemap = "arcgis-topographic";
+    map.basemap = type;
   };
 
 });
