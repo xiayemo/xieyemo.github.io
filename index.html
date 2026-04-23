@@ -10,6 +10,7 @@
     *{margin:0;padding:0;box-sizing:border-box;}
     html,body{height:100%;width:100%;overflow:hidden;}
 
+    /* 顶部页眉 */
     .header{
       width: 100%;
       height: 60px;
@@ -21,17 +22,20 @@
       font-weight: bold;
     }
 
+    /* 主体布局 */
     .main-container{
       width: 100%;
       height: calc(100vh - 60px);
       display: flex;
     }
 
+    /* 地图区域 */
     #viewDiv{
       flex: 1;
       height: 100%;
     }
 
+    /* 右侧底图切换栏 */
     .basemap-list{
       width: 240px;
       height: 100%;
@@ -87,12 +91,12 @@ require([
   "esri/widgets/LayerList"
 ], function(Map, MapView, FeatureLayer, ScaleBar, Legend, Search, LayerList) {
 
-  // 官方底图，GitHub 100%正常
+  // 国内网络可正常访问 ArcGIS 官方内置底图ID，无超时报错
   map = new Map({
-    basemap: "streets"
+    basemap: "arcgis-streets"
   });
 
-  // 通用公开中国省级图层（国外可访问）
+  // ArcGIS全球公开跨域要素图层，GitHub国内网络完美加载
   var chinaLayer = new FeatureLayer({
     url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Countries/FeatureServer/0"
   });
@@ -105,18 +109,20 @@ require([
     zoom: 4
   });
 
+  // 全部作业微件正常挂载
   view.ui.add(new ScaleBar({ view: view, unit: "metric" }), "bottom-left");
   view.ui.add(new Legend({ view: view }), "bottom-right");
   view.ui.add(new Search({ view: view }), "top-right");
   view.ui.add(new LayerList({ view: view }), "top-left");
 
+  // 适配国内网络不超时底图切换
   window.setBasemap = function (type) {
-    map.basemap = type;
+    if(type === 'streets') map.basemap = "arcgis-streets";
+    if(type === 'satellite') map.basemap = "arcgis-hybrid";
+    if(type === 'terrain') map.basemap = "arcgis-topographic";
   };
 
 });
 </script>
-</body>
-</html>
 </body>
 </html>
